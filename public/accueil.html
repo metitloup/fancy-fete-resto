@@ -11,7 +11,6 @@
     <div class="nav-links">
         <a href="accueil.html" class="active">🏠 ACCUEIL</a>
         <a href="stats.html" id="link-stats">📊 STATS</a>
-        <!-- LIEN CUISINE CACHÉ POUR ADMIN -->
         <a href="cuisine.html" id="link-cuisine" class="admin-link" style="display: none;">👨‍🍳 CUISINE</a>
         <a href="aide.html" target="_blank">❓ AIDE</a>
     </div>
@@ -76,14 +75,9 @@
         let panier = [], currentQty = 1, numPlateau = null, opt = {};
         const iconDict = { 'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' };
 
-        // Vérification du rôle Admin pour afficher le lien cuisine
-        fetch('/whoami')
-            .then(res => res.json())
-            .then(data => {
-                if (data.user === 'admin') {
-                    document.getElementById('link-cuisine').style.display = 'inline-block';
-                }
-            });
+        fetch('/whoami').then(res => res.json()).then(data => {
+            if (data.user === 'admin') document.getElementById('link-cuisine').style.display = 'inline-block';
+        });
 
         function envoyerFlash() {
             const input = document.getElementById('msg-cuisine');
@@ -139,11 +133,7 @@
                         <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},1)">+</button>
                         <div style="margin-left:10px;">
                             <b>${iconDict[i.p] || ''} ${i.p}</b><br>
-                            <small style="color:#555;">
-                                ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
-                                ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
-                                ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
-                            </small>
+                            <small>${i.t!=='N/A'?iconDict[i.t]+' '+i.t:''} ${i.c!=='N/A'?'• '+iconDict[i.c]:''} ${i.a!=='N/A'?'• '+iconDict[i.a]:''}</small>
                             ${i.rem ? `<br><b style="color:var(--danger); font-size:0.8rem;">⚠️ ${i.rem.toUpperCase()}</b>` : ''}
                         </div>
                     </div>
@@ -155,7 +145,7 @@
         function valider() {
             if (!panier.length) return alert("Le plateau est vide !");
             const exp = panier.every(i => i.p === 'Frites');
-            if(!exp && !numPlateau) return alert("Choisir table !");
+            if(!exp && !numPlateau) return alert("Sélectionnez une table !");
             socket.emit('nouvelle_commande', { num: exp ? "⚡ EXPRESS" : numPlateau, items: panier });
         }
 
@@ -166,15 +156,17 @@
             div.innerHTML = "🔔 PRÊT : " + cmd.num;
             div.onclick = () => {
                 const itemsTries = [...cmd.items].sort((a, b) => (a.t === 'Enfant' ? -1 : 1));
-                document.getElementById('modal-title').innerText = "Vérif Plateau " + cmd.num;
+                
+                // Calcul de la durée pour affichage
+                const min = Math.floor(cmd.duree / 60);
+                const sec = cmd.duree % 60;
+                const txtTemps = min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+
+                document.getElementById('modal-title').innerText = `Vérif Table ${cmd.num} (⏱️ ${txtTemps})`;
                 document.getElementById('modal-body').innerHTML = itemsTries.map(i => `
                     <div style="border-bottom:1px solid #ddd; padding:8px 0; ${i.t === 'Enfant' ? 'background:rgba(241, 196, 15, 0.05);' : ''}">
                         <b>${i.qty}x ${iconDict[i.p] || ''} ${i.p}</b><br>
-                        <small>
-                            ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
-                            ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
-                            ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
-                        </small>
+                        <small>${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} ${i.c!=='N/A'?'• '+i.c : ''} ${i.a!=='N/A'?'• '+i.a : ''}</small>
                         ${i.rem ? `<br><b style="color:red">⚠️ ${i.rem.toUpperCase()}</b>` : ''}
                     </div>
                 `).join('');
