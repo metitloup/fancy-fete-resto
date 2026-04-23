@@ -11,6 +11,8 @@
     <div class="nav-links">
         <a href="accueil.html" class="active">🏠 ACCUEIL</a>
         <a href="stats.html" id="link-stats">📊 STATS</a>
+        <!-- LIEN CUISINE CACHÉ POUR ADMIN -->
+        <a href="cuisine.html" id="link-cuisine" class="admin-link" style="display: none;">👨‍🍳 CUISINE</a>
         <a href="aide.html" target="_blank">❓ AIDE</a>
     </div>
 
@@ -57,7 +59,7 @@
             <b id="qty-val" style="font-size:1.5rem; margin:0 15px;">1</b>
             <button class="btn-opt" onclick="changeQty(1)">+</button>
         </div>
-        <input type="text" id="rem" placeholder="⚠️ Remarque" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; box-sizing: border-box;">
+        <input type="text" id="rem" placeholder="⚠️ Remarque / Allergie" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ccc; box-sizing: border-box;">
         <button class="btn-valider" onclick="ajouter()">+ AJOUTER AU PLATEAU</button>
     </div>
 
@@ -72,12 +74,16 @@
     <script>
         const socket = io();
         let panier = [], currentQty = 1, numPlateau = null, opt = {};
-        const iconDict = { 
-            'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 
-            'Adulte':'👨', 'Enfant':'🧸', 
-            'Bleu':'🔵', 'Saignant':'🔴', 'Apoint':'🟠', 'Cuit':'🟤', 
-            'Crudités':'🥗', 'Compote':'🍎' 
-        };
+        const iconDict = { 'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' };
+
+        // Vérification du rôle Admin pour afficher le lien cuisine
+        fetch('/whoami')
+            .then(res => res.json())
+            .then(data => {
+                if (data.user === 'admin') {
+                    document.getElementById('link-cuisine').style.display = 'inline-block';
+                }
+            });
 
         function envoyerFlash() {
             const input = document.getElementById('msg-cuisine');
@@ -126,25 +132,28 @@
             const container = document.getElementById('liste-panier');
             if(!panier.length) { container.innerHTML = "<small style='color:gray'>Aucun article...</small>"; return; }
             container.innerHTML = panier.map((i, idx) => `
-                <div style="background:#eee; padding:10px; margin-bottom:5px; border-radius:8px; display:flex; align-items:center;">
-                    <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},-1)">-</button>
-                    <b style="width:30px; text-align:center;">${i.qty}x</b>
-                    <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},1)">+</button>
-                    <div style="margin-left:10px; flex-grow:1;">
-                        <b>${iconDict[i.p] || ''} ${i.p}</b><br>
-                        <small style="color:#555;">
-                            ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
-                            ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
-                            ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
-                        </small>
+                <div style="background:#eee; padding:10px; margin-bottom:5px; border-radius:8px; display:flex; align-items:center; flex-wrap: wrap;">
+                    <div style="display:flex; align-items:center; flex-grow:1;">
+                        <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},-1)">-</button>
+                        <b style="width:30px; text-align:center;">${i.qty}x</b>
+                        <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},1)">+</button>
+                        <div style="margin-left:10px;">
+                            <b>${iconDict[i.p] || ''} ${i.p}</b><br>
+                            <small style="color:#555;">
+                                ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
+                                ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
+                                ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
+                            </small>
+                            ${i.rem ? `<br><b style="color:var(--danger); font-size:0.8rem;">⚠️ ${i.rem.toUpperCase()}</b>` : ''}
+                        </div>
                     </div>
-                    <button onclick="panier.splice(${idx},1);renderPanier()" style="border:none; background:none; font-weight:bold; color:red;">✕</button>
+                    <button onclick="panier.splice(${idx},1);renderPanier()" style="border:none; background:none; font-weight:bold; color:red; margin-left: auto;">✕</button>
                 </div>
             `).join('');
         }
 
         function valider() {
-            if (!panier.length) return alert("Vide !");
+            if (!panier.length) return alert("Le plateau est vide !");
             const exp = panier.every(i => i.p === 'Frites');
             if(!exp && !numPlateau) return alert("Choisir table !");
             socket.emit('nouvelle_commande', { num: exp ? "⚡ EXPRESS" : numPlateau, items: panier });
@@ -153,7 +162,6 @@
         socket.on('notification_accueil', (cmd) => {
             new Audio('alerte.mp3').play();
             if (cmd.num.toString().includes('EXPRESS')) { socket.emit('confirmation_servi', cmd.num); return; }
-            
             const div = document.createElement('div'); div.className = 'notif-bubble';
             div.innerHTML = "🔔 PRÊT : " + cmd.num;
             div.onclick = () => {
