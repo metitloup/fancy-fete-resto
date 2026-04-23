@@ -6,12 +6,10 @@
     <title>Cuisine - Production</title>
 </head>
 <body>
-    <!-- Overlay obligatoire pour autoriser le son sur navigateur -->
     <div id="overlay-son">
         <button class="btn-valider" style="width:auto; padding:20px 40px; border-radius: 10px !important;" onclick="audioPret=true; this.parentElement.style.display='none';">🔔 ACTIVER LE SON</button>
     </div>
     
-    <!-- Barre de production (somme de tous les tickets) -->
     <div id="barre-prod">
         <div class="prod-item">🍖 <span id="prod-Barbecue" class="prod-qty">0</span> BBQ</div>
         <div class="prod-item">🥩 <span id="prod-Steak" class="prod-qty">0</span> STEAK</div>
@@ -19,15 +17,13 @@
         <div class="prod-item">🍟 <span id="prod-Frites" class="prod-qty">0</span> FRITES</div>
     </div>
 
-    <!-- Zone de messages d'urgence de l'accueil -->
     <div id="zone-flash" style="display:none;">
         <span id="texte-flash"></span>
-        <button onclick="this.parentElement.style.display='none'" style="margin-left:15px; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">OK</button>
+        <button onclick="this.parentElement.style.display='none'" style="margin-left:15px; background:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-weight:bold;">OK</button>
     </div>
 
     <div id="status" style="display:flex; justify-content:center; align-items:center; height:30px; font-weight:bold; background:#f8d7da; font-size:0.8rem;">🔴 DÉCONNECTÉ</div>
     
-    <!-- Grille des tickets -->
     <div id="commandes" class="container-cuisine"></div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -83,22 +79,19 @@
             div.className = 'ticket'; 
             div.setAttribute('data-num', data.num);
 
-            // --- TRI PAR ENFANT / ADULTE ---
-            // On trie les items pour mettre les Enfants (🧸) en haut du ticket
-            const itemsTries = [...data.items].sort((a, b) => {
-                if (a.t === 'Enfant' && b.t !== 'Enfant') return -1;
-                if (a.t !== 'Enfant' && b.t === 'Enfant') return 1;
-                return 0;
-            });
+            const aDesRemarques = data.items.some(i => i.rem && i.rem.trim() !== "");
+            if(aDesRemarques) div.classList.add('ticket-alerte');
+
+            const itemsTries = [...data.items].sort((a, b) => (a.t === 'Enfant' ? -1 : 1));
 
             div.innerHTML = `
                 <div class="ticket-header" style="background:${isExpress ? 'var(--express)' : 'var(--dark)'};">
-                    <h1>${data.num}</h1>
+                    <h1 class="${isExpress ? 'titre-long' : ''}">${data.num}</h1>
                     <div class="chrono-badge">⏱️ <span id="chrono-${tid}">0</span>s</div>
                 </div>
                 <div class="ticket-body">
                     ${itemsTries.map(i => `
-                        <div class="item-row" style="${i.t === 'Enfant' ? 'background:rgba(241, 196, 15, 0.05);' : ''}">
+                        <div class="item-row" style="${i.t === 'Enfant' ? 'border-left: 5px solid #f1c40f; padding-left:5px;' : ''}">
                             <span class="item-qty">${i.qty}x</span> ${icones[i.p]||''} <b>${i.p}</b><br>
                             <small style="color:#444; font-size:0.9rem;">
                                 ${i.t!=='N/A' ? (icones[i.t]||'')+' '+i.t : ''} 
@@ -110,7 +103,7 @@
                     `).join('')}
                 </div>
                 <button class="btn-valider" style="background:${isExpress ? 'var(--express)' : 'var(--success)'};" 
-                    onclick="valider('${data.num}', '${tid}')">TERMINÉ ✅</button>
+                    onclick="valider('${data.num}', '${tid}')">PRÊT ✅</button>
             `;
             document.getElementById('commandes').appendChild(div);
 
@@ -122,6 +115,7 @@
                 el.innerText = sec;
                 if (sec >= 900) div.className = 'ticket temps-danger';
                 else if (sec >= 600) div.className = 'ticket temps-warning';
+                if(aDesRemarques && sec < 600) div.classList.add('ticket-alerte');
             }, 1000);
         }
 
