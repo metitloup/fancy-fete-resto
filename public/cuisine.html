@@ -29,16 +29,11 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io(); 
-        let audioPret = false; 
-        const monSon = new Audio('./alerte.mp3');
+        let audioPret = false, monSon = new Audio('./alerte.mp3');
         const icones = { 'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' };
         let commandesEnCours = [];
 
-        socket.on('connect', () => { 
-            const s = document.getElementById('status'); 
-            s.innerText = "🟢 CUISINE CONNECTÉE"; 
-            s.style.background = "#d4edda"; 
-        });
+        socket.on('connect', () => { document.getElementById('status').innerText = "🟢 CUISINE CONNECTÉE"; document.getElementById('status').style.background = "#d4edda"; });
         
         socket.on('recevoir_flash_cuisine', (msg) => {
             const zone = document.getElementById('zone-flash');
@@ -56,7 +51,7 @@
 
         socket.on('affichage_cuisine', (data) => {
             if (audioPret) monSon.play();
-            if (!commandesEnCours.find(c => c.num === data.num && c.timestampArrivee === data.timestampArrivee)) {
+            if (!commandesEnCours.find(c => c.num === data.num)) {
                 commandesEnCours.push(data);
                 creerTicket(data);
                 majBarre();
@@ -65,29 +60,24 @@
 
         function majBarre() {
             const t = { 'Barbecue': 0, 'Steak': 0, 'Fromage': 0, 'Frites': 0 };
-            commandesEnCours.forEach(c => c.items.forEach(i => { 
-                if (t[i.p] !== undefined) t[i.p] += parseInt(i.qty); 
-            }));
+            commandesEnCours.forEach(c => c.items.forEach(i => { if (t[i.p] !== undefined) t[i.p] += parseInt(i.qty); }));
             for (let p in t) document.getElementById('prod-' + p).innerText = t[p];
         }
 
         function creerTicket(data) {
-            const tid = "tk-" + data.num + "-" + data.timestampArrivee;
+            const tid = "tk-" + data.num;
             const isExpress = data.num.toString().includes('EXPRESS');
             const div = document.createElement('div'); 
-            div.id = tid; 
-            div.className = 'ticket'; 
-            div.setAttribute('data-num', data.num);
+            div.id = tid; div.className = 'ticket'; div.setAttribute('data-num', data.num);
 
-            const aDesRemarques = data.items.some(i => i.rem && i.rem.trim() !== "");
-            if(aDesRemarques) div.classList.add('ticket-alerte');
+            if(data.items.some(i => i.rem && i.rem.trim() !== "")) div.classList.add('ticket-alerte');
 
             const itemsTries = [...data.items].sort((a, b) => (a.t === 'Enfant' ? -1 : 1));
 
             div.innerHTML = `
                 <div class="ticket-header" style="background:${isExpress ? 'var(--express)' : 'var(--dark)'};">
                     <h1 class="${isExpress ? 'titre-long' : ''}">${data.num}</h1>
-                    <div class="chrono-badge">⏱️ <span id="chrono-${tid}">0</span>s</div>
+                    <div class="chrono-badge">⏱️ <span id="chrono-${tid}">${data.serverElapsed || 0}</span>s</div>
                 </div>
                 <div class="ticket-body">
                     ${itemsTries.map(i => `
@@ -103,11 +93,12 @@
                     `).join('')}
                 </div>
                 <button class="btn-valider" style="background:${isExpress ? 'var(--express)' : 'var(--success)'};" 
-                    onclick="valider('${data.num}', '${tid}')">PRÊT ✅</button>
+                    onclick="valider('${data.num}', '${tid}')">TERMINÉ ✅</button>
             `;
             document.getElementById('commandes').appendChild(div);
 
-            let sec = Math.round((Date.now() - data.timestampArrivee)/1000);
+            // LOGIQUE DE CHRONO INDÉPENDANTE DE L'HEURE RÉELLE
+            let sec = data.serverElapsed || 0; 
             const interval = setInterval(() => {
                 const el = document.getElementById(`chrono-${tid}`);
                 if(!el) { clearInterval(interval); return; }
@@ -115,15 +106,13 @@
                 el.innerText = sec;
                 if (sec >= 900) div.className = 'ticket temps-danger';
                 else if (sec >= 600) div.className = 'ticket temps-warning';
-                if(aDesRemarques && sec < 600) div.classList.add('ticket-alerte');
             }, 1000);
         }
 
         function valider(num, tid) {
             socket.emit('plateau_pret', num);
             commandesEnCours = commandesEnCours.filter(c => c.num != num);
-            const el = document.getElementById(tid);
-            if(el) el.remove();
+            const el = document.getElementById(tid); if(el) el.remove();
             majBarre();
         }
     </script>
