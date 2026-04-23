@@ -2,14 +2,26 @@ services:
   resto-app:
     build: .
     container_name: resto-app-container
-    # Politique de redémarrage automatique en cas de coupure de courant
     restart: always
+    # Accès direct via http://[IP_DU_DIETPI] (port 80)
     ports:
       - "80:3000"
     volumes:
-      # Lie le fichier db.json de ton dossier au fichier dans le conteneur
       - ./db.json:/app/db.json
-    # Sur DietPi, on force l'utilisateur root pour éviter les soucis de droits d'écriture sur db.json
+    # Protection de la carte SD : les fichiers temporaires vont en RAM (tmpfs)
+    tmpfs:
+      - /tmp
+      - /run
+    # Forcer root pour éviter les erreurs de permission sur db.json
     user: "root"
-    # Optimisation pour Raspberry Pi
-    mem_limit: 256m
+    # Limite mémoire pour ne pas étouffer le Raspberry
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    # Réduction des logs sur disque
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
