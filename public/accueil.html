@@ -73,7 +73,11 @@
     <script>
         const socket = io();
         let panier = [], currentQty = 1, numPlateau = null, opt = {};
-        const iconDict = { 'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' };
+        const iconDict = { 
+            'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 
+            'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 
+            'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' 
+        };
 
         fetch('/whoami').then(res => res.json()).then(data => {
             if (data.user === 'admin') document.getElementById('link-cuisine').style.display = 'inline-block';
@@ -133,7 +137,11 @@
                         <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},1)">+</button>
                         <div style="margin-left:10px;">
                             <b>${iconDict[i.p] || ''} ${i.p}</b><br>
-                            <small>${i.t!=='N/A'?iconDict[i.t]+' '+i.t:''} ${i.c!=='N/A'?'• '+iconDict[i.c]:''} ${i.a!=='N/A'?'• '+iconDict[i.a]:''}</small>
+                            <small style="color:#555;">
+                                ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
+                                ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
+                                ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
+                            </small>
                             ${i.rem ? `<br><b style="color:var(--danger); font-size:0.8rem;">⚠️ ${i.rem.toUpperCase()}</b>` : ''}
                         </div>
                     </div>
@@ -156,8 +164,6 @@
             div.innerHTML = "🔔 PRÊT : " + cmd.num;
             div.onclick = () => {
                 const itemsTries = [...cmd.items].sort((a, b) => (a.t === 'Enfant' ? -1 : 1));
-                
-                // Calcul de la durée pour affichage
                 const min = Math.floor(cmd.duree / 60);
                 const sec = cmd.duree % 60;
                 const txtTemps = min > 0 ? `${min}m ${sec}s` : `${sec}s`;
@@ -166,7 +172,11 @@
                 document.getElementById('modal-body').innerHTML = itemsTries.map(i => `
                     <div style="border-bottom:1px solid #ddd; padding:8px 0; ${i.t === 'Enfant' ? 'background:rgba(241, 196, 15, 0.05);' : ''}">
                         <b>${i.qty}x ${iconDict[i.p] || ''} ${i.p}</b><br>
-                        <small>${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} ${i.c!=='N/A'?'• '+i.c : ''} ${i.a!=='N/A'?'• '+i.a : ''}</small>
+                        <small>
+                            ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
+                            ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
+                            ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
+                        </small>
                         ${i.rem ? `<br><b style="color:red">⚠️ ${i.rem.toUpperCase()}</b>` : ''}
                     </div>
                 `).join('');
