@@ -35,8 +35,10 @@ body {
 .nav-links { 
     display: flex; 
     justify-content: center; 
-    gap: 20px; 
+    align-items: center;
+    gap: 15px; 
     margin: 10px 0 15px 0; 
+    flex-wrap: wrap;
 }
 
 .nav-links a { 
@@ -44,6 +46,7 @@ body {
     color: var(--dark); 
     font-weight: bold; 
     opacity: 0.5; 
+    font-size: 0.9rem;
 }
 
 .nav-links a.active { 
@@ -51,7 +54,17 @@ body {
     color: var(--primary); 
 }
 
-/* --- INTERFACE ACCUEIL (PRIME DE COMMANDE) --- */
+/* Style spécifique pour le lien cuisine admin */
+.nav-links a.admin-link {
+    color: var(--express);
+    border: 1px dashed var(--express);
+    padding: 3px 10px;
+    border-radius: 20px;
+    opacity: 0.8;
+}
+.nav-links a.admin-link:hover { opacity: 1; background: rgba(52, 152, 219, 0.1); }
+
+/* --- INTERFACE ACCUEIL (PRISE DE COMMANDE) --- */
 .grid-menus { 
     display: grid; 
     grid-template-columns: 1fr 1fr; 
@@ -216,6 +229,13 @@ body {
 
 .ticket-header h1 { font-size: 2.2rem !important; margin: 0 !important; font-weight: 900; }
 
+/* Adaptation pour titres longs (Express) */
+.ticket-header h1.titre-long {
+    font-size: 1.2rem !important;
+    white-space: nowrap;
+    letter-spacing: 0;
+}
+
 .chrono-badge { 
     background: rgba(0,0,0,0.2); 
     padding: 4px 10px; 
@@ -227,8 +247,26 @@ body {
 
 /* Alertes Retard Cuisine */
 .temps-warning { border-color: var(--warning) !important; border-width: 5px !important; background: #fff9f0 !important; }
-.temps-danger { border-color: var(--danger) !important; border-width: 8px !important; background: #fff0f0 !important; animation: blink-red 1s infinite; }
+.temps-danger { border-color: var(--danger) !important; border-width: 8px !important; background: #fff0f0 !important; animation: blink-red 1.5s infinite; }
 @keyframes blink-red { 50% { border-color: #ff0000; } }
+
+/* Alerte Remarque Ticket */
+.ticket-alerte { background-color: #fff3cd !important; border-color: #ffc107 !important; }
+
+.remarque-flash { 
+    background: var(--danger); 
+    color: white; 
+    padding: 4px; 
+    border-radius: 4px; 
+    font-weight: 900; 
+    text-transform: uppercase; 
+    text-align: center;
+    font-size: 0.75rem;
+    margin-top: 5px;
+    animation: flash-remarque 1s infinite;
+}
+
+@keyframes flash-remarque { 50% { opacity: 0.7; } }
 
 #zone-flash { 
     background: var(--warning); 
@@ -261,7 +299,6 @@ body {
     box-sizing: border-box;
 }
 
-/* Conteneur spécial pour garder les camemberts ronds */
 .chart-container-stats {
     position: relative;
     flex-grow: 1;
@@ -273,7 +310,6 @@ body {
 
 canvas { max-width: 100% !important; max-height: 100% !important; }
 
-/* Bandeau Chiffres Stats */
 .temps-moyen-full { 
     grid-column: 1 / -1; 
     background: var(--dark); 
@@ -294,7 +330,7 @@ canvas { max-width: 100% !important; max-height: 100% !important; }
     border-top: 1px dashed #ddd;
 }
 
-/* Bouton RAZ Joli */
+/* Bouton RAZ Joli Rouge 3D */
 .btn-purge { 
     background: var(--danger); 
     color: white; 

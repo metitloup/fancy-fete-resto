@@ -13,6 +13,8 @@
     <div class="nav-links">
         <a href="accueil.html">🏠 ACCUEIL</a>
         <a href="stats.html" class="active">📊 STATS</a>
+        <a href="cuisine.html" id="link-cuisine" class="admin-link" style="display: none;">👨‍🍳 CUISINE</a>
+        <a href="aide.html" target="_blank">❓ AIDE</a>
     </div>
 
     <div class="stats-grid">
@@ -66,7 +68,7 @@
         </div>
     </div>
 
-    <button class="btn-purge" onclick="demanderPurge()">🗑️ REMISE À ZÉRO DES STATS</button>
+    <button id="btn-purge-admin" class="btn-purge" onclick="demanderPurge()" style="display: none;">🗑️ REMISE À ZÉRO DES STATS</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -75,14 +77,25 @@
         const platColorMap = { 'Barbecue': '#e67e22', 'Steak': '#2c3e50', 'Fromage': '#27ae60', 'Frites': '#f1c40f' };
         const pubColors = { 'Adulte': '#34495e', 'Enfant': '#f1c40f' };
 
-        // Options : "true" pour camembert (reste rond), "false" pour barres (remplit le cadre)
+        // Gestion des droits Admin
+        fetch('/whoami').then(res => res.json()).then(data => {
+            if (data.user === 'admin') {
+                document.getElementById('btn-purge-admin').style.display = 'block';
+                document.getElementById('link-cuisine').style.display = 'inline-block';
+            }
+        });
+
         const getOpt = (isPie) => ({
             responsive: true,
             maintainAspectRatio: isPie,
             plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
         });
 
-        socket.on('connect', () => { document.getElementById('status').innerText = "🟢 Connecté"; socket.emit('demande_stats'); });
+        socket.on('connect', () => { 
+            document.getElementById('status').innerText = "🟢 Connecté"; 
+            socket.emit('demande_stats'); 
+        });
+
         function demanderPurge() { if(confirm("Vider l'historique ?")) socket.emit('purger_tout'); }
 
         socket.on('envoi_stats', (hist) => {
@@ -100,17 +113,19 @@
                 if(d.acc === 'Crudités') gCrud += qty;
                 if(d.acc === 'Compote') gComp += qty;
 
+                // Ta logique de triple croisement
                 if(d.acc && d.acc !== 'N/A' && d.plat !== 'Fromage') {
                     if(!accTriple[d.plat]) accTriple[d.plat] = { "Adulte-Crudités":0, "Adulte-Compote":0, "Enfant-Crudités":0, "Enfant-Compote":0 };
-                    accTriple[d.plat][`${d.taille}-${d.acc}`] += qty;
+                    const key = d.taille + "-" + d.acc;
+                    if(accTriple[d.plat][key] !== undefined) accTriple[d.plat][key] += qty;
                 }
                 if(d.taille && d.taille !== 'N/A') {
                     if(!pubCroise[d.plat]) pubCroise[d.plat] = { 'Adulte': 0, 'Enfant': 0 };
-                    pubCroise[d.plat][d.taille] += qty;
+                    if(pubCroise[d.plat][d.taille] !== undefined) pubCroise[d.plat][d.taille] += qty;
                 }
                 if(d.cuisson && d.cuisson !== 'N/A') {
                     if(!cuissonPublic[d.cuisson]) cuissonPublic[d.cuisson] = { 'Adulte': 0, 'Enfant': 0 };
-                    cuissonPublic[d.cuisson][d.taille] += qty;
+                    if(cuissonPublic[d.cuisson][d.taille] !== undefined) cuissonPublic[d.cuisson][d.taille] += qty;
                 }
             });
 
@@ -124,13 +139,14 @@
             const moy = Math.round(totalDuree / hist.length) || 0;
             document.getElementById('temps-moyen-val').innerText = `${Math.floor(moy/60)}m ${moy%60}s`;
 
-            // Rendu des graphiques
+            // Chart Plats
             myCharts.push(new Chart(document.getElementById('chartPlats'), {
                 type: 'pie',
                 data: { labels: Object.keys(platsCount).filter(k => platsCount[k]>0), datasets: [{ data: Object.values(platsCount).filter(v => v>0), backgroundColor: Object.keys(platsCount).map(l => platColorMap[l]) }] },
                 options: getOpt(true)
             }));
 
+            // Chart Accompagnements Croisés
             const accLabels = Object.keys(accTriple);
             myCharts.push(new Chart(document.getElementById('chartAccCroisePlatPublic'), {
                 type: 'bar',
@@ -143,15 +159,29 @@
                 options: { ...getOpt(false), scales: { x: { stacked: true }, y: { stacked: true } } }
             }));
 
+            // Chart Public
             myCharts.push(new Chart(document.getElementById('chartPublicCroise'), {
                 type: 'bar',
-                data: { labels: Object.keys(pubCroise), datasets: [{ label: 'Adulte', data: Object.keys(pubCroise).map(p => pubCroise[p].Adulte), backgroundColor: pubColors.Adulte }, { label: 'Enfant', data: Object.keys(pubCroise).map(p => pubCroise[p].Enfant), backgroundColor: pubColors.Enfant }] },
+                data: { 
+                    labels: Object.keys(pubCroise), 
+                    datasets: [
+                        { label: 'Adulte', data: Object.keys(pubCroise).map(p => pubCroise[p].Adulte), backgroundColor: pubColors.Adulte },
+                        { label: 'Enfant', data: Object.keys(pubCroise).map(p => pubCroise[p].Enfant), backgroundColor: pubColors.Enfant }
+                    ] 
+                },
                 options: getOpt(false)
             }));
 
+            // Chart Cuisson
             myCharts.push(new Chart(document.getElementById('chartCuissonPublic'), {
                 type: 'bar',
-                data: { labels: Object.keys(cuissonPublic), datasets: [{ label: 'Adulte', data: Object.keys(cuissonPublic).map(c => cuissonPublic[c].Adulte), backgroundColor: pubColors.Adulte }, { label: 'Enfant', data: Object.keys(cuissonPublic).map(c => cuissonPublic[c].Enfant), backgroundColor: pubColors.Enfant }] },
+                data: { 
+                    labels: Object.keys(cuissonPublic), 
+                    datasets: [
+                        { label: 'Adulte', data: Object.keys(cuissonPublic).map(c => cuissonPublic[c].Adulte), backgroundColor: pubColors.Adulte },
+                        { label: 'Enfant', data: Object.keys(cuissonPublic).map(c => cuissonPublic[c].Enfant), backgroundColor: pubColors.Enfant }
+                    ] 
+                },
                 options: getOpt(false)
             }));
         });
