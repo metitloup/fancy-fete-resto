@@ -23,6 +23,7 @@ Une solution complète et légère de gestion de restauration rapide pour évén
 - Graphiques en temps réel (Ventes, Public, Cuissons).
 - Indicateur de temps d'attente moyen.
 - Suivi global des stocks (Compotes, Crudités).
+- Mise à blanc de la db un exemple est fourni pour donner une idée des statistiques
 
 ## 🛠️ Installation
 
