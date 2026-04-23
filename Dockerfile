@@ -1,9 +1,20 @@
-FROM node:18-slim
+# Image de base ultra-légère pour processeur ARM (Raspberry Pi)
+FROM node:18-alpine
+
+# Dossier de l'application
 WORKDIR /app
-# On copie le package.json d'abord pour optimiser le cache
+
+# On copie d'abord uniquement les fichiers de dépendances
 COPY package*.json ./
-RUN npm install
-# On copie le reste
+
+# Installation propre des modules (sans les outils de développement)
+RUN npm install --omit=dev
+
+# On copie tout le reste de ton projet (HTML, CSS, JS, Chart.js, etc.)
 COPY . .
+
+# Port utilisé par l'app
 EXPOSE 3000
+
+# Lancement du serveur
 CMD ["node", "server.js"]

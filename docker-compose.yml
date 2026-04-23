@@ -2,8 +2,14 @@ services:
   resto-app:
     build: .
     container_name: resto-app-container
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./db.json:/app/db.json
+    # Politique de redémarrage automatique en cas de coupure de courant
     restart: always
+    ports:
+      - "80:3000"
+    volumes:
+      # Lie le fichier db.json de ton dossier au fichier dans le conteneur
+      - ./db.json:/app/db.json
+    # Sur DietPi, on force l'utilisateur root pour éviter les soucis de droits d'écriture sur db.json
+    user: "root"
+    # Optimisation pour Raspberry Pi
+    mem_limit: 256m
