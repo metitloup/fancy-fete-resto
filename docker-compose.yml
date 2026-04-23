@@ -1,0 +1,9 @@
+services:
+  resto-app:
+    build: .
+    container_name: resto-app-container
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./db.json:/app/db.json
+    restart: always

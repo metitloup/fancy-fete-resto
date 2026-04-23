@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Aide - Fancy Fête Hell Beck</title>
+    <style>
+        .aide-container { max-width: 800px; margin: 20px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .intro { text-align: center; margin-bottom: 40px; }
+        .intro h1 { color: var(--primary); margin-bottom: 10px; }
+        .intro p { color: var(--dark); font-weight: bold; font-size: 1.1rem; }
+        
+        .section-aide { margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .section-aide:last-child { border-bottom: none; }
+        .section-aide h2 { color: var(--dark); display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        
+        .action-list { list-style: none; padding: 0; }
+        .action-list li { margin-bottom: 12px; padding-left: 25px; position: relative; line-height: 1.5; }
+        .action-list li::before { content: "•"; color: var(--primary); font-weight: bold; position: absolute; left: 0; font-size: 1.5rem; line-height: 1; }
+        
+        b { color: var(--dark); }
+        .highlight-success { color: var(--success); font-weight: bold; }
+        .highlight-express { color: var(--express); font-weight: bold; }
+        .highlight-danger { color: var(--danger); font-weight: bold; }
+        .highlight-warning { color: var(--warning); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="status" style="text-align:center; padding:10px; font-weight:bold; background:#d4edda; color:#155724; font-size:1rem; border-bottom: 1px solid #ccc;">📖 MODE D'EMPLOI</div>
+
+    <div class="aide-container">
+        <div class="intro">
+            <h1>🎡 Fancy Fête Hell Beck</h1>
+            <p>Gestion des commandes en temps réel entre l'accueil et la cuisine.</p>
+        </div>
+
+        <div class="section-aide">
+            <h2>📝 1. À l'Accueil</h2>
+            <ul class="action-list">
+                <li><b>Prendre commande :</b> Cliquez sur un plat. Choisissez Taille, Cuisson et Accompagnement.</li>
+                <li><b>Modifier les quantités :</b> Dans le plateau en cours, utilisez les boutons <button class="qty-btn-panier" style="width:20px; height:20px; pointer-events:none;">-</button> et <button class="qty-btn-panier" style="width:20px; height:20px; pointer-events:none;">+</button> pour ajuster chaque ligne.</li>
+                <li><b>Envoi Cuisine :</b> Sélectionnez une table (1-16) puis validez. Les frites seules passent en <span class="highlight-express">⚡ EXPRESS</span>.</li>
+                <li><b>Message Flash :</b> Utilisez la barre grise en haut pour envoyer un texte urgent qui s'affichera en grand en cuisine.</li>
+            </ul>
+        </div>
+
+        <div class="section-aide">
+            <h2>👨‍🍳 2. En Cuisine</h2>
+            <ul class="action-list">
+                <li><b>Barre de production :</b> Regardez en haut pour voir le cumul total de viandes et frites à cuire.</li>
+                <li><b>Code couleur d'attente :</b> 
+                    <br>• <span class="highlight-warning">Orange (10 min)</span> : Attention, ça commence à être long.
+                    <br>• <span class="highlight-danger">Rouge clignotant (15 min)</span> : URGENCE, le client attend trop !
+                </li>
+                <li><b>Terminer :</b> Cliquez sur "TERMINÉ ✅" pour prévenir l'accueil.</li>
+            </ul>
+        </div>
+
+        <div class="section-aide">
+            <h2>🏁 3. Livraison & Retour</h2>
+            <ul class="action-list">
+                <li><b>Bulles Vertes :</b> Elles s'empilent en haut à droite dès qu'un plateau est prêt. Cliquez pour vérifier.</li>
+                <li><b>Libération :</b> La table est libérée quand vous cliquez sur "VÉRIFIÉ / SERVI ✅".</li>
+                <li><b>Forcer une table :</b> Si une table reste bloquée (X), faites un <b>appui long (2 sec)</b> sur le numéro pour la libérer manuellement.</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <button class="btn-opt" onclick="window.close()" style="background: var(--dark); color: white; border: none;">FERMER L'AIDE</button>
+        </div>
+    </div>
+</body>
+</html>

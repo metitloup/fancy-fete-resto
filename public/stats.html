@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Stats - Fancy Fête Hell Beck</title>
+    <script src="Chart.js"></script>
+</head>
+<body>
+    <div id="status">🔴 Déconnecté</div>
+    
+    <div class="nav-links">
+        <a href="accueil.html">🏠 ACCUEIL</a>
+        <a href="stats.html" class="active">📊 STATS</a>
+    </div>
+
+    <div class="stats-grid">
+        <!-- Bandeau Chiffres -->
+        <div class="temps-moyen-full">
+            <div class="temps-moyen-item">
+                <span class="temps-moyen-label">⏱️ ATTENTE</span>
+                <span id="temps-moyen-val" class="temps-moyen-val">--:--</span>
+            </div>
+            <div class="temps-moyen-item">
+                <span class="temps-moyen-label">🍔 PLATS</span>
+                <span id="total-plats-val" class="temps-moyen-val">0</span>
+            </div>
+            <div class="temps-moyen-item">
+                <span class="temps-moyen-label">🍟 FRITES</span>
+                <span id="total-frites-val" class="temps-moyen-val val-frites">0</span>
+            </div>
+        </div>
+
+        <!-- Graphique Plats (Camembert) -->
+        <div class="chart-card">
+            <h3>Ventes Totales</h3>
+            <div class="chart-container-stats"><canvas id="chartPlats"></canvas></div>
+            <div class="plats-totals-grid">
+                <div class="plat-stat-item"><span class="plat-stat-label">🍖 BBQ</span><span id="stat-barbecue" class="plat-stat-val" style="color:#e67e22">0</span></div>
+                <div class="plat-stat-item"><span class="plat-stat-label">🥩 STEAK</span><span id="stat-steak" class="plat-stat-val" style="color:#2c3e50">0</span></div>
+                <div class="plat-stat-item"><span class="plat-stat-label">🧀 FROMAGE</span><span id="stat-fromage" class="plat-stat-val" style="color:#27ae60">0</span></div>
+            </div>
+        </div>
+        
+        <!-- Graphique Accompagnements (Barres) -->
+        <div class="chart-card">
+            <h3>Accompagnements (Steak & BBQ)</h3>
+            <div class="chart-container-stats"><canvas id="chartAccCroisePlatPublic"></canvas></div>
+            <div class="acc-inner-totals">
+                <div class="acc-stat txt-crud">🥗 Crudités : <span id="total-crudites-val">0</span></div>
+                <div class="acc-stat txt-comp">🍎 Compotes : <span id="total-compote-val">0</span></div>
+            </div>
+        </div>
+
+        <!-- Graphique Public (Barres) -->
+        <div class="chart-card">
+            <h3>Public par Plat (👨/🧸)</h3>
+            <div class="chart-container-stats"><canvas id="chartPublicCroise"></canvas></div>
+        </div>
+
+        <!-- Graphique Cuissons (Barres) -->
+        <div class="chart-card">
+            <h3>Cuissons par Public</h3>
+            <div class="chart-container-stats"><canvas id="chartCuissonPublic"></canvas></div>
+        </div>
+    </div>
+
+    <button class="btn-purge" onclick="demanderPurge()">🗑️ REMISE À ZÉRO DES STATS</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let myCharts = [];
+        const platColorMap = { 'Barbecue': '#e67e22', 'Steak': '#2c3e50', 'Fromage': '#27ae60', 'Frites': '#f1c40f' };
+        const pubColors = { 'Adulte': '#34495e', 'Enfant': '#f1c40f' };
+
+        // Options : "true" pour camembert (reste rond), "false" pour barres (remplit le cadre)
+        const getOpt = (isPie) => ({
+            responsive: true,
+            maintainAspectRatio: isPie,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+        });
+
+        socket.on('connect', () => { document.getElementById('status').innerText = "🟢 Connecté"; socket.emit('demande_stats'); });
+        function demanderPurge() { if(confirm("Vider l'historique ?")) socket.emit('purger_tout'); }
+
+        socket.on('envoi_stats', (hist) => {
+            myCharts.forEach(c => c.destroy()); myCharts = [];
+            if(!hist || hist.length === 0) return;
+
+            let totalDuree = 0, totalPlats = 0, totalFrites = 0, gCrud = 0, gComp = 0;
+            const platsCount = { 'Barbecue':0, 'Steak':0, 'Fromage':0 }, pubCroise = {}, cuissonPublic = {}, accTriple = {};
+
+            hist.forEach(d => {
+                const qty = parseInt(d.qty) || 1;
+                if(d.plat.includes('Frite')) totalFrites += qty; else totalPlats += qty;
+                platsCount[d.plat] = (platsCount[d.plat] || 0) + qty;
+                totalDuree += (parseInt(d.duree) || 0);
+                if(d.acc === 'Crudités') gCrud += qty;
+                if(d.acc === 'Compote') gComp += qty;
+
+                if(d.acc && d.acc !== 'N/A' && d.plat !== 'Fromage') {
+                    if(!accTriple[d.plat]) accTriple[d.plat] = { "Adulte-Crudités":0, "Adulte-Compote":0, "Enfant-Crudités":0, "Enfant-Compote":0 };
+                    accTriple[d.plat][`${d.taille}-${d.acc}`] += qty;
+                }
+                if(d.taille && d.taille !== 'N/A') {
+                    if(!pubCroise[d.plat]) pubCroise[d.plat] = { 'Adulte': 0, 'Enfant': 0 };
+                    pubCroise[d.plat][d.taille] += qty;
+                }
+                if(d.cuisson && d.cuisson !== 'N/A') {
+                    if(!cuissonPublic[d.cuisson]) cuissonPublic[d.cuisson] = { 'Adulte': 0, 'Enfant': 0 };
+                    cuissonPublic[d.cuisson][d.taille] += qty;
+                }
+            });
+
+            document.getElementById('total-plats-val').innerText = totalPlats;
+            document.getElementById('total-frites-val').innerText = totalFrites;
+            document.getElementById('total-crudites-val').innerText = gCrud;
+            document.getElementById('total-compote-val').innerText = gComp;
+            document.getElementById('stat-barbecue').innerText = platsCount['Barbecue'];
+            document.getElementById('stat-steak').innerText = platsCount['Steak'];
+            document.getElementById('stat-fromage').innerText = platsCount['Fromage'];
+            const moy = Math.round(totalDuree / hist.length) || 0;
+            document.getElementById('temps-moyen-val').innerText = `${Math.floor(moy/60)}m ${moy%60}s`;
+
+            // Rendu des graphiques
+            myCharts.push(new Chart(document.getElementById('chartPlats'), {
+                type: 'pie',
+                data: { labels: Object.keys(platsCount).filter(k => platsCount[k]>0), datasets: [{ data: Object.values(platsCount).filter(v => v>0), backgroundColor: Object.keys(platsCount).map(l => platColorMap[l]) }] },
+                options: getOpt(true)
+            }));
+
+            const accLabels = Object.keys(accTriple);
+            myCharts.push(new Chart(document.getElementById('chartAccCroisePlatPublic'), {
+                type: 'bar',
+                data: { labels: accLabels, datasets: [
+                    { label: '👨 Crud.', data: accLabels.map(p => accTriple[p]["Adulte-Crudités"]), backgroundColor: '#27ae60', stack: 'A' },
+                    { label: '👨 Comp.', data: accLabels.map(p => accTriple[p]["Adulte-Compote"]), backgroundColor: '#2c3e50', stack: 'A' },
+                    { label: '🧸 Crud.', data: accLabels.map(p => accTriple[p]["Enfant-Crudités"]), backgroundColor: '#f1c40f', stack: 'E' },
+                    { label: '🧸 Comp.', data: accLabels.map(p => accTriple[p]["Enfant-Compote"]), backgroundColor: '#e74c3c', stack: 'E' }
+                ]},
+                options: { ...getOpt(false), scales: { x: { stacked: true }, y: { stacked: true } } }
+            }));
+
+            myCharts.push(new Chart(document.getElementById('chartPublicCroise'), {
+                type: 'bar',
+                data: { labels: Object.keys(pubCroise), datasets: [{ label: 'Adulte', data: Object.keys(pubCroise).map(p => pubCroise[p].Adulte), backgroundColor: pubColors.Adulte }, { label: 'Enfant', data: Object.keys(pubCroise).map(p => pubCroise[p].Enfant), backgroundColor: pubColors.Enfant }] },
+                options: getOpt(false)
+            }));
+
+            myCharts.push(new Chart(document.getElementById('chartCuissonPublic'), {
+                type: 'bar',
+                data: { labels: Object.keys(cuissonPublic), datasets: [{ label: 'Adulte', data: Object.keys(cuissonPublic).map(c => cuissonPublic[c].Adulte), backgroundColor: pubColors.Adulte }, { label: 'Enfant', data: Object.keys(cuissonPublic).map(c => cuissonPublic[c].Enfant), backgroundColor: pubColors.Enfant }] },
+                options: getOpt(false)
+            }));
+        });
+    </script>
+</body>
+</html>

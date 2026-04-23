@@ -1,0 +1,9 @@
+{
+  "name": "resto-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "express-basic-auth": "^1.2.1"
+  }
+}

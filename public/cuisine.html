@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+    <title>Cuisine - Production</title>
+</head>
+<body>
+    <!-- Overlay obligatoire pour autoriser le son sur navigateur -->
+    <div id="overlay-son">
+        <button class="btn-valider" style="width:auto; padding:20px 40px; border-radius: 10px !important;" onclick="audioPret=true; this.parentElement.style.display='none';">🔔 ACTIVER LE SON</button>
+    </div>
+    
+    <!-- Barre de production (somme de tous les tickets) -->
+    <div id="barre-prod">
+        <div class="prod-item">🍖 <span id="prod-Barbecue" class="prod-qty">0</span> BBQ</div>
+        <div class="prod-item">🥩 <span id="prod-Steak" class="prod-qty">0</span> STEAK</div>
+        <div class="prod-item">🧀 <span id="prod-Fromage" class="prod-qty">0</span> FROMAGE</div>
+        <div class="prod-item">🍟 <span id="prod-Frites" class="prod-qty">0</span> FRITES</div>
+    </div>
+
+    <!-- Zone de messages d'urgence de l'accueil -->
+    <div id="zone-flash" style="display:none;">
+        <span id="texte-flash"></span>
+        <button onclick="this.parentElement.style.display='none'" style="margin-left:15px; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">OK</button>
+    </div>
+
+    <div id="status" style="display:flex; justify-content:center; align-items:center; height:30px; font-weight:bold; background:#f8d7da; font-size:0.8rem;">🔴 DÉCONNECTÉ</div>
+    
+    <!-- Grille des tickets -->
+    <div id="commandes" class="container-cuisine"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(); 
+        let audioPret = false; 
+        const monSon = new Audio('./alerte.mp3');
+        const icones = { 'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' };
+        let commandesEnCours = [];
+
+        socket.on('connect', () => { 
+            const s = document.getElementById('status'); 
+            s.innerText = "🟢 CUISINE CONNECTÉE"; 
+            s.style.background = "#d4edda"; 
+        });
+        
+        socket.on('recevoir_flash_cuisine', (msg) => {
+            const zone = document.getElementById('zone-flash');
+            document.getElementById('texte-flash').innerText = "📣 MESSAGE : " + msg.toUpperCase();
+            zone.style.display = 'block';
+            if (audioPret) monSon.play();
+        });
+
+        socket.on('supprimer_ticket_cuisine', (num) => {
+            commandesEnCours = commandesEnCours.filter(c => c.num != num);
+            const t = document.querySelector(`.ticket[data-num="${num}"]`);
+            if(t) t.remove();
+            majBarre();
+        });
+
+        socket.on('affichage_cuisine', (data) => {
+            if (audioPret) monSon.play();
+            if (!commandesEnCours.find(c => c.num === data.num && c.timestampArrivee === data.timestampArrivee)) {
+                commandesEnCours.push(data);
+                creerTicket(data);
+                majBarre();
+            }
+        });
+
+        function majBarre() {
+            const t = { 'Barbecue': 0, 'Steak': 0, 'Fromage': 0, 'Frites': 0 };
+            commandesEnCours.forEach(c => c.items.forEach(i => { 
+                if (t[i.p] !== undefined) t[i.p] += parseInt(i.qty); 
+            }));
+            for (let p in t) document.getElementById('prod-' + p).innerText = t[p];
+        }
+
+        function creerTicket(data) {
+            const tid = "tk-" + data.num + "-" + data.timestampArrivee;
+            const isExpress = data.num.toString().includes('EXPRESS');
+            const div = document.createElement('div'); 
+            div.id = tid; 
+            div.className = 'ticket'; 
+            div.setAttribute('data-num', data.num);
+
+            // --- TRI PAR ENFANT / ADULTE ---
+            // On trie les items pour mettre les Enfants (🧸) en haut du ticket
+            const itemsTries = [...data.items].sort((a, b) => {
+                if (a.t === 'Enfant' && b.t !== 'Enfant') return -1;
+                if (a.t !== 'Enfant' && b.t === 'Enfant') return 1;
+                return 0;
+            });
+
+            div.innerHTML = `
+                <div class="ticket-header" style="background:${isExpress ? 'var(--express)' : 'var(--dark)'};">
+                    <h1>${data.num}</h1>
+                    <div class="chrono-badge">⏱️ <span id="chrono-${tid}">0</span>s</div>
+                </div>
+                <div class="ticket-body">
+                    ${itemsTries.map(i => `
+                        <div class="item-row" style="${i.t === 'Enfant' ? 'background:rgba(241, 196, 15, 0.05);' : ''}">
+                            <span class="item-qty">${i.qty}x</span> ${icones[i.p]||''} <b>${i.p}</b><br>
+                            <small style="color:#444; font-size:0.9rem;">
+                                ${i.t!=='N/A' ? (icones[i.t]||'')+' '+i.t : ''} 
+                                ${i.c!=='N/A' ? ' • '+(icones[i.c]||'')+' '+i.c : ''} 
+                                ${i.a!=='N/A' ? ' • '+(icones[i.a]||'')+' '+i.a : ''}
+                            </small>
+                            ${i.rem ? `<div class="remarque-flash">⚠️ ${i.rem.toUpperCase()}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="btn-valider" style="background:${isExpress ? 'var(--express)' : 'var(--success)'};" 
+                    onclick="valider('${data.num}', '${tid}')">TERMINÉ ✅</button>
+            `;
+            document.getElementById('commandes').appendChild(div);
+
+            let sec = Math.round((Date.now() - data.timestampArrivee)/1000);
+            const interval = setInterval(() => {
+                const el = document.getElementById(`chrono-${tid}`);
+                if(!el) { clearInterval(interval); return; }
+                sec++; 
+                el.innerText = sec;
+                if (sec >= 900) div.className = 'ticket temps-danger';
+                else if (sec >= 600) div.className = 'ticket temps-warning';
+            }, 1000);
+        }
+
+        function valider(num, tid) {
+            socket.emit('plateau_pret', num);
+            commandesEnCours = commandesEnCours.filter(c => c.num != num);
+            const el = document.getElementById(tid);
+            if(el) el.remove();
+            majBarre();
+        }
+    </script>
+</body>
+</html>
