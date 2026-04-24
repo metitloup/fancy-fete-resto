@@ -1,50 +1,57 @@
-# 🎡 Fancy Fête - Gestion de Commandes en Temps Réel
+# 🍽️ Fancy Fête Resto - Déploiement DietPi (Raspberry Pi)
 
-![Node.js](https://shields.io)
-![Socket.io](https://shields.io)
-![Docker](https://shields.io)
+Cette version est optimisée pour tourner sur des micro-ordinateurs à ressources limitées (Raspberry Pi Zero, 1, 2, 3) sous **DietPi**.
 
-Une solution complète et légère de gestion de restauration rapide pour événements, optimisée pour un usage multi-tablettes avec synchronisation instantanée.
+## ⚙️ Optimisations spécifiques
+- **Zéro Rebuild** : Le code (`public/` et `server.js`) est monté en volume. Les modifications sont instantanées via un simple `restart`.
+- **Protection Carte SD** : Utilisation de `tmpfs` pour déporter les fichiers temporaires (`/tmp`) en RAM et réduction drastique des logs Docker.
+- **Gestion RAM** : Limite de mémoire fixée à 256Mo pour éviter les plantages (OOM Killer).
+- **Heure Locale** : Synchronisation automatique avec l'horloge du DietPi (Europe/Brussels).
 
-## 🚀 Aperçu des fonctionnalités
+## 🛠️ Installation Rapide
 
-### 📱 Accueil (Prise de commande)
-- **Multi-dispositifs** : Gestion sécurisée des conflits (une table ne peut pas être prise deux fois simultanément).
-- **Interface tactile** : Personnalisation rapide (taille, cuisson, accompagnements).
-- **Panier intelligent** : Modification des quantités en un clic et gestion des commandes **Express** (Frites).
-- **Messages Flash** : Envoi d'alertes textuelles directes à la cuisine.
+1. **Préparer les fichiers de données**
+   Avant de lancer Docker, créez le fichier de base de données pour éviter que Docker ne crée un dossier à la place :
+   ```bash
+   touch db.json
+   echo '{"plateauxOccupes":[],"commandesActives":[],"commandesPretes":[],"historique":[]}' > db.json
+   chmod 666 db.json
+   ```
 
-### 👨‍🍳 Cuisine (Production)
-- **Barre de production** : Cumul automatique de tous les plats à préparer.
-- **Alertes visuelles** : Changement de couleur dynamique selon le temps d'attente (Orange 10 min / Rouge clignotant 15 min).
-- **Optimisation** : Tri automatique des tickets par type de public (**Enfant 🧸 d'abord**).
+2. **Premier lancement (Build initial)**
+   Cette étape est longue sur Raspberry Pi mais ne doit être faite qu'une seule fois :
+   ```bash
+   docker compose up -d --build
+   ```
 
-### 📊 Statistiques (Pilotage)
-- Graphiques en temps réel (Ventes, Public, Cuissons).
-- Indicateur de temps d'attente moyen.
-- Suivi global des stocks (Compotes, Crudités).
-- Mise à blanc de la db un exemple est fourni pour donner une idée des statistiques
+3. **Accès**
+   L'application répond sur le **port 80** (standard HTTP).
+   - URL : `http://[IP_DU_DIETPI]`
 
-## 🛠️ Installation
+## 🔄 Mise à jour du code (Sans attente)
 
-### Via Docker (Recommandé)
+Puisque les fichiers sont montés en volumes, vous n'avez pas besoin de reconstruire l'image Docker pour changer le HTML, le CSS ou les Plats :
+
+1. **Récupérer le code depuis la branche main** :
+   ```bash
+   git checkout main -- public/ server.js
+   ```
+
+2. **Appliquer les changements** :
+   ```bash
+   docker compose restart
+   ```
+   *C'est instantané (1 à 2 secondes).*
+
+## 🔒 Accès Sécurisés
+- **Utilisateur Accueil** : `accueil` / `accueil`
+- **Utilisateur Admin** : `admin` / `resto2024`
+
+## 📊 Statistiques & Rapports
+Le fichier `db.json` est synchronisé en temps réel sur le disque du DietPi. Vous pouvez générer le bilan financier à tout moment depuis le terminal du Pi :
 ```bash
-docker-compose up -d --build
+python3 bilan_fete_pro.py
 ```
 
-### Via Node.js (Local)
-1. Installer les dépendances : `npm install`
-2. Lancer le serveur : `node server.js`
-3. Accès : `http://localhost:3000`
-
-## 🔐 Accès par défaut
-- **Admin** : `admin` / `resto2024`
-- **Serveur** : `accueil` / `accueil`
-
-## 📂 Structure du projet
-- `server.js` : Cœur de l'application (Express/Socket.io).
-- `public/` : Interfaces (HTML, CSS optimisé, JS client).
-- `db.json` : Persistance des données (historique et commandes).
-
 ---
-*Développé pour la Fancy Fête Hell Beck.*
+*Note : Si vous ajoutez des dépendances dans `package.json`, un `docker compose up -d --build` redeviendra nécessaire.*

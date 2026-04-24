@@ -1,6 +1,9 @@
 # Image ultra-légère pour ARM
 FROM node:18-alpine
 
+# Installation de tzdata pour l'heure Europe/Brussels
+RUN apk add --no-cache tzdata
+
 # Dossier de travail
 WORKDIR /app
 
@@ -11,14 +14,8 @@ RUN npm install --omit=dev && npm cache clean --force
 # Copie du reste de l'application
 COPY . .
 
-# --- SÉCURITÉ ANTI-BUG "DOSSIER DB.JSON" ---
-# On crée le fichier JSON vide s'il n'existe pas déjà
-RUN if [ ! -f db.json ]; then \
-    echo '{"plateauxOccupes":[],"commandesActives":[],"commandesPretes":[],"historique":[]}' > db.json; \
-    fi
-
 # Port interne
 EXPOSE 3000
 
-# Lancement
+# Lancement (Corrigé)
 CMD ["node", "server.js"]

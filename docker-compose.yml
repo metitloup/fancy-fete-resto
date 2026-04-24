@@ -6,20 +6,35 @@ services:
     # Accès direct via http://[IP_DU_DIETPI] (port 80)
     ports:
       - "80:3000"
+    
+    environment:
+      - TZ=Europe/Brussels
+      - NODE_ENV=production
+
     volumes:
+      # PERSISTANCE : La base de données
       - ./db.json:/app/db.json
-    # Protection de la carte SD : les fichiers temporaires vont en RAM (tmpfs)
+      # DYNAMISME : On monte les fichiers pour éviter le rebuild sur le Pi
+      - ./public:/app/public
+      - ./server.js:/app/server.js
+      # Synchronisation horloge avec DietPi
+      - /etc/localtime:/etc/localtime:ro
+
+    # Protection de la carte SD (écriture en RAM pour les fichiers temporaires)
     tmpfs:
       - /tmp
       - /run
-    # Forcer root pour éviter les erreurs de permission sur db.json
+    
+    # Forcer root pour éviter les erreurs de permission sur db.json sur SD Card
     user: "root"
-    # Limite mémoire pour ne pas étouffer le Raspberry
+
+    # Gestion stricte des ressources pour DietPi
     deploy:
       resources:
         limits:
           memory: 256M
-    # Réduction des logs sur disque
+    
+    # Réduction drastique des logs sur disque (préserve la carte SD)
     logging:
       driver: "json-file"
       options:
