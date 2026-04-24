@@ -50,12 +50,25 @@
       "nom": "Burger",
       "icon": "🍔",
       "couleur": "#3498db",
-      "prix_adulte": 10,
-      "prix_enfant": 7,
-      "hasTaille": true,
+      "prix_adulte": 5,
+      "prix_enfant": 5,
+      "hasTaille": false,
       "hasCuisson": false,
       "hasAcc": false,
       "isExpress": true
+    },
+    {
+      "id": "Hotdog",
+      "nom": "Hot Dog",
+      "icon": "🌭",
+      "couleur": "#db33d5",
+      "prix_adulte": null,
+      "prix_enfant": null,
+      "hasTaille": false,
+      "hasCuisson": false,
+      "hasAcc": false,
+      "isExpress": true,
+      "prix_unique": 3.5
     }
   ],
   "options": {
