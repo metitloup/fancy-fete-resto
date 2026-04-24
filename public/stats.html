@@ -11,7 +11,7 @@
     <div id="status">🔴 Déconnecté</div>
 
     <div class="nav-links">
-        <a href="/">🏠 ACCUEIL</a> <!-- Corrigé ici -->
+        <a href="/">🏠 ACCUEIL</a>
         <a href="stats.html" class="active">📊 STATS</a>
         <a href="cuisine.html" id="link-cuisine" class="admin-link" style="display: none;">👨‍🍳 CUISINE</a>
         <a href="aide.html" target="_blank">❓ AIDE</a>
@@ -36,13 +36,11 @@
         <div class="chart-card">
             <h3>Ventes Totales</h3>
             <div class="chart-container-stats"><canvas id="chartPlats"></canvas></div>
-            <div class="plats-totals-grid" id="legende-plats-dynamique">
-                <!-- Généré dynamiquement -->
-            </div>
+            <div class="plats-totals-grid" id="legende-plats-dynamique"></div>
         </div>
 
         <div class="chart-card">
-            <h3>Accompagnements (Steak & BBQ)</h3>
+            <h3>Accompagnements Choisis</h3>
             <div class="chart-container-stats"><canvas id="chartAccCroisePlatPublic"></canvas></div>
             <div class="acc-inner-totals">
                 <div class="acc-stat txt-crud">🥗 Crudités : <span id="total-crudites-val">0</span></div>
@@ -70,23 +68,16 @@
         let configPlats = [];
         const platColorMap = {};
 
-        // 1. Initialisation dynamique de la config
         async function initStats() {
             const res = await fetch('plats.json');
             const data = await res.json();
             configPlats = data.plats;
-
-            configPlats.forEach(p => {
-                platColorMap[p.id] = p.couleur;
-            });
-
-            // Générer la légende sous le camembert
+            configPlats.forEach(p => platColorMap[p.id] = p.couleur);
             document.getElementById('legende-plats-dynamique').innerHTML = configPlats.filter(p => p.id !== 'Frites').map(p => `
                 <div class="plat-stat-item">
                     <span class="plat-stat-label">${p.icon} ${p.nom}</span>
                     <span id="stat-${p.id}" class="plat-stat-val" style="color:${p.couleur}">0</span>
-                </div>
-            `).join('');
+                </div>`).join('');
         }
 
         fetch('/whoami').then(res => res.json()).then(data => {
@@ -115,12 +106,14 @@
             let totalDuree = 0, totalPlats = 0, totalFrites = 0, gCrud = 0, gComp = 0;
             const platsCount = {}, pubCroise = {}, cuissonPublic = {}, accTriple = {};
 
-            // Init des objets selon config
             configPlats.forEach(p => {
                 platsCount[p.id] = 0;
                 if(p.id !== 'Frites') {
                     pubCroise[p.id] = { 'Adulte': 0, 'Enfant': 0 };
-                    accTriple[p.id] = { "Adulte-Crudités":0, "Adulte-Compote":0, "Enfant-Crudités":0, "Enfant-Compote":0 };
+                    // On n'initialise accTriple que pour les plats avec accompagnement VARIABLE
+                    if(p.hasAcc && !p.forcedAcc) {
+                        accTriple[p.id] = { "Adulte-Crudités":0, "Adulte-Compote":0, "Enfant-Crudités":0, "Enfant-Compote":0 };
+                    }
                 }
             });
 
@@ -132,6 +125,7 @@
                 if(d.acc === 'Crudités') gCrud += qty;
                 if(d.acc === 'Compote') gComp += qty;
 
+                // Filtrage automatique ici : si accTriple[d.plat] n'existe pas, c'est ignoré du graphique
                 if(d.acc && d.acc !== 'N/A' && accTriple[d.plat]) {
                     const key = d.taille + "-" + d.acc;
                     if(accTriple[d.plat][key] !== undefined) accTriple[d.plat][key] += qty;
@@ -141,11 +135,10 @@
                 }
                 if(d.cuisson && d.cuisson !== 'N/A') {
                     if(!cuissonPublic[d.cuisson]) cuissonPublic[d.cuisson] = { 'Adulte': 0, 'Enfant': 0 };
-                    cuissonPublic[d.cuisson][d.taille] += qty;
+                    if(cuissonPublic[d.cuisson][d.taille] !== undefined) cuissonPublic[d.cuisson][d.taille] += qty;
                 }
             });
 
-            // Maj DOM
             document.getElementById('total-plats-val').innerText = totalPlats;
             document.getElementById('total-frites-val').innerText = totalFrites;
             document.getElementById('total-crudites-val').innerText = gCrud;
@@ -159,17 +152,15 @@
             const moy = Math.round(totalDuree / hist.length) || 0;
             document.getElementById('temps-moyen-val').innerText = `${Math.floor(moy/60)}m ${moy%60}s`;
 
-            // Charts
+            // Pie Chart Plats
             myCharts.push(new Chart(document.getElementById('chartPlats'), {
                 type: 'pie',
-                data: {
-                    labels: Object.keys(platsCount).filter(k => platsCount[k]>0),
-                    datasets: [{ data: Object.values(platsCount).filter(v => v>0), backgroundColor: Object.keys(platsCount).map(l => platColorMap[l]) }]
-                },
+                data: { labels: Object.keys(platsCount).filter(k => platsCount[k]>0), datasets: [{ data: Object.values(platsCount).filter(v => v>0), backgroundColor: Object.keys(platsCount).map(l => platColorMap[l]) }] },
                 options: getOpt(true)
             }));
 
-            const accLabels = Object.keys(accTriple);
+            // Bar Chart Accompagnements (Filtré)
+            const accLabels = Object.keys(accTriple); // Contient uniquement BBQ et Steak par exemple
             myCharts.push(new Chart(document.getElementById('chartAccCroisePlatPublic'), {
                 type: 'bar',
                 data: { labels: accLabels, datasets: [
