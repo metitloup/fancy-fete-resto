@@ -6,3 +6,4 @@ Dockerfile
 db.json
 *.gz
 
+*.xlsx
