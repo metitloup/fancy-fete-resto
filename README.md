@@ -1,50 +1,52 @@
-# 🎡 Fancy Fête - Gestion de Commandes en Temps Réel
+# 🍽️ Fancy Fête Resto v2.0
 
-![Node.js](https://shields.io)
-![Socket.io](https://shields.io)
-![Docker](https://shields.io)
+Système de gestion de restauration événementielle (Caisse tactile + Cuisine + Statistiques) piloté par Socket.io et Docker.
 
-Une solution complète et légère de gestion de restauration rapide pour événements, optimisée pour un usage multi-tablettes avec synchronisation instantanée.
+## 🚀 Fonctionnalités
+- **Menu Dynamique** : Entièrement configurable via `plats.json` (Prix, Icônes, Couleurs).
+- **Temps Réel** : Communication bidirectionnelle Accueil <-> Cuisine via WebSockets.
+- **Règles Métier** :
+  - Gestion des commandes "Express" (Frites) sans numéro de table.
+  - Accompagnements forcés (ex: Fromage -> Crudités).
+  - Tri prioritaire des menus Enfant en cuisine.
+- **Statistiques & Finance** :
+  - Tableaux de bord Chart.js en temps réel.
+  - Script Python pour générer des rapports Excel avec CA et temps de préparation.
+- **Administration** : Interface visuelle pour modifier le menu (`admin.html`).
 
-## 🚀 Aperçu des fonctionnalités
+## 🛠️ Installation (Fedora / Docker)
 
-### 📱 Accueil (Prise de commande)
-- **Multi-dispositifs** : Gestion sécurisée des conflits (une table ne peut pas être prise deux fois simultanément).
-- **Interface tactile** : Personnalisation rapide (taille, cuisson, accompagnements).
-- **Panier intelligent** : Modification des quantités en un clic et gestion des commandes **Express** (Frites).
-- **Messages Flash** : Envoi d'alertes textuelles directes à la cuisine.
+1. **Cloner le projet**
+   ```bash
+   git clone https://github.com
+   cd fancy-fete-resto
+   ```
 
-### 👨‍🍳 Cuisine (Production)
-- **Barre de production** : Cumul automatique de tous les plats à préparer.
-- **Alertes visuelles** : Changement de couleur dynamique selon le temps d'attente (Orange 10 min / Rouge clignotant 15 min).
-- **Optimisation** : Tri automatique des tickets par type de public (**Enfant 🧸 d'abord**).
+2. **Configurer l'heure et les droits**
+   ```bash
+   chmod 666 db.json
+   ```
 
-### 📊 Statistiques (Pilotage)
-- Graphiques en temps réel (Ventes, Public, Cuissons).
-- Indicateur de temps d'attente moyen.
-- Suivi global des stocks (Compotes, Crudités).
-- Mise à blanc de la db un exemple est fourni pour donner une idée des statistiques
+3. **Lancer avec Docker Compose**
+   ```bash
+   docker compose up -d --build
+   ```
 
-## 🛠️ Installation
-
-### Via Docker (Recommandé)
-```bash
-docker-compose up -d --build
-```
-
-### Via Node.js (Local)
-1. Installer les dépendances : `npm install`
-2. Lancer le serveur : `node server.js`
-3. Accès : `http://localhost:3000`
-
-## 🔐 Accès par défaut
-- **Admin** : `admin` / `resto2024`
-- **Serveur** : `accueil` / `accueil`
+L'application est accessible sur `http://localhost:3000`.
 
 ## 📂 Structure du projet
-- `server.js` : Cœur de l'application (Express/Socket.io).
-- `public/` : Interfaces (HTML, CSS optimisé, JS client).
-- `db.json` : Persistance des données (historique et commandes).
+- `/public` : Frontend (HTML/JS/CSS).
+- `plats.json` : Fichier de configuration du menu.
+- `server.js` : Backend Node.js / Socket.io.
+- `db.json` : Base de données JSON persistante.
+- `bilan_fete_pro.py` : Générateur de rapport financier Excel.
 
----
-*Développé pour la Fancy Fête Hell Beck.*
+## 🔒 Accès
+- **Accueil** : `accueil / accueil`
+- **Admin/Cuisine/Stats** : `admin / resto2024`
+
+## 📊 Extraction des données
+Pour générer le bilan financier après l'événement :
+```bash
+python3 bilan_fete_pro.py
+```

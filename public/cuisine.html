@@ -7,51 +7,52 @@
 </head>
 <body>
     <div id="overlay-son">
-        <button class="btn-valider" style="width:auto; padding:20px 40px; border-radius: 10px !important;" onclick="audioPret=true; this.parentElement.style.display='none';">🔔 ACTIVER LE SON</button>
-    </div>
-    
-    <div id="barre-prod">
-        <div class="prod-item">🍖 <span id="prod-Barbecue" class="prod-qty">0</span> BBQ</div>
-        <div class="prod-item">🥩 <span id="prod-Steak" class="prod-qty">0</span> STEAK</div>
-        <div class="prod-item">🧀 <span id="prod-Fromage" class="prod-qty">0</span> FROMAGE</div>
-        <div class="prod-item">🍟 <span id="prod-Frites" class="prod-qty">0</span> FRITES</div>
+        <button class="btn-valider" style="width:auto; padding:20px 40px; border-radius: 10px;" onclick="audioPret=true; this.parentElement.style.display='none';">🔔 ACTIVER LE SON</button>
     </div>
 
-    <div id="zone-flash" style="display:none;">
-        <span id="texte-flash"></span>
-        <button onclick="this.parentElement.style.display='none'" style="margin-left:15px; background:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-weight:bold;">OK</button>
+    <!-- Barre de prod globale -->
+    <div id="barre-prod"></div>
+
+    <!-- ZONE DE RÉCEPTION DES MESSAGES FLASH -->
+    <div id="zone-flash" style="display:none; background: var(--warning); color: white; padding: 15px; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 2000; border-bottom: 3px solid rgba(0,0,0,0.2);">
+        <span id="texte-flash" style="font-size: 1.2rem;"></span>
+        <button onclick="document.getElementById('zone-flash').style.display='none'" style="margin-left:20px; background:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold; color:var(--dark);">LU / OK</button>
     </div>
 
     <div id="status" style="display:flex; justify-content:center; align-items:center; height:30px; font-weight:bold; background:#f8d7da; font-size:0.8rem;">🔴 DÉCONNECTÉ</div>
-    
+
     <div id="commandes" class="container-cuisine"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io(); 
-        let audioPret = false; 
+        const socket = io();
+        let audioPret = false;
         const monSon = new Audio('./alerte.mp3');
-        const icones = { 'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' };
-        let commandesEnCours = [];
+        let configPlats = [], icones = { "N/A": "" }, commandesEnCours = [];
 
-        socket.on('connect', () => { 
-            const s = document.getElementById('status'); 
-            s.innerText = "🟢 CUISINE CONNECTÉE"; 
-            s.style.background = "#d4edda"; 
+        async function initCuisine() {
+            const res = await fetch('plats.json');
+            const data = await res.json();
+            configPlats = data.plats;
+            configPlats.forEach(p => icones[p.id] = p.icon);
+            data.options.tailles.forEach(t => icones[t.id] = t.icon);
+            data.options.cuissons.forEach(c => icones[c.id] = c.icon);
+            data.options.accompagnements.forEach(a => icones[a.id] = a.icon);
+            document.getElementById('barre-prod').innerHTML = configPlats.map(p => `<div class="prod-item">${p.icon} <span id="prod-${p.id}" class="prod-qty">0</span> ${p.nom}</div>`).join('');
+        }
+
+        socket.on('connect', () => {
+            document.getElementById('status').innerText = "🟢 CUISINE CONNECTÉE";
+            document.getElementById('status').style.background = "#d4edda";
         });
-        
+
+        // --- RÉCEPTION DES MESSAGES FLASH DEPUIS L'ACCUEIL ---
         socket.on('recevoir_flash_cuisine', (msg) => {
             const zone = document.getElementById('zone-flash');
-            document.getElementById('texte-flash').innerText = "📣 MESSAGE : " + msg.toUpperCase();
+            const texte = document.getElementById('texte-flash');
+            texte.innerText = "📣 MESSAGE ACCUEIL : " + msg.toUpperCase();
             zone.style.display = 'block';
-            if (audioPret) monSon.play();
-        });
-
-        socket.on('supprimer_ticket_cuisine', (num) => {
-            commandesEnCours = commandesEnCours.filter(c => c.num != num);
-            const t = document.querySelector(`.ticket[data-num="${num}"]`);
-            if(t) t.remove();
-            majBarre();
+            if (audioPret) monSon.play(); // On fait sonner pour prévenir la cuisine
         });
 
         socket.on('affichage_cuisine', (data) => {
@@ -64,24 +65,15 @@
         });
 
         function majBarre() {
-            const t = { 'Barbecue': 0, 'Steak': 0, 'Fromage': 0, 'Frites': 0 };
-            commandesEnCours.forEach(c => c.items.forEach(i => { 
-                if (t[i.p] !== undefined) t[i.p] += parseInt(i.qty); 
-            }));
-            for (let p in t) document.getElementById('prod-' + p).innerText = t[p];
+            const t = {}; configPlats.forEach(p => t[p.id] = 0);
+            commandesEnCours.forEach(c => c.items.forEach(i => { if (t[i.p] !== undefined) t[i.p] += parseInt(i.qty); }));
+            for (let p in t) { const el = document.getElementById('prod-' + p); if(el) el.innerText = t[p]; }
         }
 
         function creerTicket(data) {
             const tid = "tk-" + data.num + "-" + data.timestampArrivee;
+            const div = document.createElement('div'); div.id = tid; div.className = 'ticket';
             const isExpress = data.num.toString().includes('EXPRESS');
-            const div = document.createElement('div'); 
-            div.id = tid; 
-            div.className = 'ticket'; 
-            div.setAttribute('data-num', data.num);
-
-            const aDesRemarques = data.items.some(i => i.rem && i.rem.trim() !== "");
-            if(aDesRemarques) div.classList.add('ticket-alerte');
-
             const itemsTries = [...data.items].sort((a, b) => (a.t === 'Enfant' ? -1 : 1));
 
             div.innerHTML = `
@@ -89,43 +81,34 @@
                     <h1 class="${isExpress ? 'titre-long' : ''}">${data.num}</h1>
                     <div class="chrono-badge">⏱️ <span id="chrono-${tid}">0</span>s</div>
                 </div>
-                <div class="ticket-body">
+                <div class="ticket-body" style="padding:10px;">
                     ${itemsTries.map(i => `
-                        <div class="item-row" style="${i.t === 'Enfant' ? 'border-left: 5px solid #f1c40f; padding-left:5px;' : ''}">
-                            <span class="item-qty">${i.qty}x</span> ${icones[i.p]||''} <b>${i.p}</b><br>
-                            <small style="color:#444; font-size:0.9rem;">
-                                ${i.t!=='N/A' ? (icones[i.t]||'')+' '+i.t : ''} 
-                                ${i.c!=='N/A' ? ' • '+(icones[i.c]||'')+' '+i.c : ''} 
-                                ${i.a!=='N/A' ? ' • '+(icones[i.a]||'')+' '+i.a : ''}
+                        <div class="item-row" style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:5px; ${i.t === 'Enfant' ? 'background:#fff9c4; border-left:5px solid #f1c40f; padding:5px;' : ''}">
+                            <b>${i.qty}x ${icones[i.p]||''} ${i.p}</b><br>
+                            <small>
+                                <b>${icones[i.t]||''} ${i.t}</b>
+                                ${i.c !== 'N/A' ? ' • ' + (icones[i.c]||'') + ' ' + i.c : ''}
+                                ${i.a !== 'N/A' ? ' • ' + (icones[i.a]||'') + ' ' + i.a : ''}
                             </small>
                             ${i.rem ? `<div class="remarque-flash">⚠️ ${i.rem.toUpperCase()}</div>` : ''}
-                        </div>
-                    `).join('')}
+                        </div>`).join('')}
                 </div>
-                <button class="btn-valider" style="background:${isExpress ? 'var(--express)' : 'var(--success)'};" 
-                    onclick="valider('${data.num}', '${tid}')">PRÊT ✅</button>
-            `;
+                <button class="btn-valider" onclick="valider('${data.num}', '${tid}')">PRÊT ✅</button>`;
             document.getElementById('commandes').appendChild(div);
 
             let sec = Math.round((Date.now() - data.timestampArrivee)/1000);
-            const interval = setInterval(() => {
+            const timer = setInterval(() => {
                 const el = document.getElementById(`chrono-${tid}`);
-                if(!el) { clearInterval(interval); return; }
-                sec++; 
-                el.innerText = sec;
-                if (sec >= 900) div.className = 'ticket temps-danger';
-                else if (sec >= 600) div.className = 'ticket temps-warning';
-                if(aDesRemarques && sec < 600) div.classList.add('ticket-alerte');
+                if(el) {
+                    el.innerText = ++sec;
+                    if(sec >= 900) div.className = 'ticket temps-danger';
+                    else if(sec >= 600) div.className = 'ticket temps-warning';
+                } else clearInterval(timer);
             }, 1000);
         }
 
-        function valider(num, tid) {
-            socket.emit('plateau_pret', num);
-            commandesEnCours = commandesEnCours.filter(c => c.num != num);
-            const el = document.getElementById(tid);
-            if(el) el.remove();
-            majBarre();
-        }
+        function valider(num, tid) { socket.emit('plateau_pret', num); commandesEnCours = commandesEnCours.filter(c => c.num != num); document.getElementById(tid).remove(); majBarre(); }
+        window.onload = initCuisine;
     </script>
 </body>
 </html>

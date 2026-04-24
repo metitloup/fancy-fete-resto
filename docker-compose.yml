@@ -1,9 +1,14 @@
 services:
-  resto-app:
+  fancy-fete:
     build: .
-    container_name: resto-app-container
+    container_name: fancy-fete-app
     ports:
       - "3000:3000"
+    environment:
+      - TZ=Europe/Brussels
     volumes:
       - ./db.json:/app/db.json
+      - ./public/plats.json:/app/public/plats.json
+      # Partage l'horloge de Fedora avec le conteneur
+      - /etc/localtime:/etc/localtime:ro
     restart: always
