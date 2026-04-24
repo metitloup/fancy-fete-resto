@@ -8,7 +8,10 @@ services:
       - TZ=Europe/Brussels
     volumes:
       - ./db.json:/app/db.json
-      - ./public/plats.json:/app/public/plats.json
-      # Partage l'horloge de Fedora avec le conteneur
+      # MONTE TOUT LE DOSSIER PUBLIC (au lieu de juste plats.json)
+      - ./public:/app/public
+      # MONTE LE SERVEUR
+      - ./server.js:/app/server.js
+      # Partage l'horloge de Fedora
       - /etc/localtime:/etc/localtime:ro
     restart: always
