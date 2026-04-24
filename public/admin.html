@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Configurateur de Menu - Fancy Fête</title>
+    <style>
+        .admin-container { max-width: 900px; margin: 20px auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .plat-edit-card {
+            border: 2px solid #eee; padding: 20px; margin-bottom: 20px; border-radius: 15px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; position: relative;
+        }
+        .plat-edit-card h3 { grid-column: 1 / -1; margin: 0; color: var(--dark); border-bottom: 3px solid var(--primary); padding-bottom: 5px; }
+        .btn-delete { position: absolute; top: 15px; right: 15px; background: var(--danger); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; }
+        label { font-size: 0.85rem; font-weight: bold; color: #666; display: block; margin-bottom: 5px; }
+        input, select { padding: 10px; border-radius: 8px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; font-size: 1rem; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; margin-top: 10px; }
+        .checkbox-group input { width: auto; }
+        .actions-bar { position: sticky; bottom: 0; background: white; padding: 20px 0; border-top: 2px solid #eee; display: flex; gap: 15px; }
+        .btn-add { background: var(--express); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 1; }
+        .btn-save { background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 2; font-size: 1.1rem; }
+        .emoji-bar { margin-bottom: 10px; padding: 10px; background: #f0f2f5; border-radius: 10px; text-align: center; }
+        .emoji-item { cursor: pointer; font-size: 1.5rem; margin: 0 5px; padding: 5px; border-radius: 5px; display: inline-block; }
+        .emoji-item:hover { background: white; }
+    </style>
+</head>
+<body>
+    <div class="nav-links">
+        <a href="/">🏠 RETOUR ACCUEIL</a>
+    </div>
+
+    <div class="admin-container">
+        <h1>⚙️ Configurateur de Menu</h1>
+
+        <div class="emoji-bar">
+            <span>Icônes rapides (clique pour copier) :</span><br>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🍔')">🍔</div>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🍖')">🍖</div>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🥩')">🥩</div>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🧀')">🧀</div>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🍟')">🍟</div>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🌭')">🌭</div>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🥗')">🥗</div>
+            <div class="emoji-item" onclick="navigator.clipboard.writeText('🍷')">🍷</div>
+        </div>
+
+        <div id="editor-zone">Chargement du menu...</div>
+
+        <div class="actions-bar">
+            <button class="btn-add" onclick="ajouterNouveauPlat()">➕ AJOUTER UN PLAT</button>
+            <button class="btn-save" onclick="telechargerConfig()">💾 GÉNÉRER PLATS.JSON</button>
+        </div>
+    </div>
+
+    <script>
+        let config = {};
+
+        async function init() {
+            const res = await fetch('plats.json');
+            config = await res.json();
+            renderEditor();
+        }
+
+        function renderEditor() {
+            const zone = document.getElementById('editor-zone');
+            zone.innerHTML = config.plats.map((p, idx) => `
+                <div class="plat-edit-card">
+                    <button class="btn-delete" onclick="supprimerPlat(${idx})">×</button>
+                    <h3>Plat : ${p.nom || 'Nouveau'}</h3>
+
+                    <div>
+                        <label>ID Unique (ex: Burger)</label>
+                        <input type="text" value="${p.id}" onchange="updatePlat(${idx}, 'id', this.value)">
+                    </div>
+                    <div>
+                        <label>Nom affiché</label>
+                        <input type="text" value="${p.nom}" onchange="updatePlat(${idx}, 'nom', this.value)">
+                    </div>
+                    <div>
+                        <label>Icône (Emoji)</label>
+                        <input type="text" value="${p.icon}" onchange="updatePlat(${idx}, 'icon', this.value)">
+                    </div>
+                    <div>
+                        <label>Couleur</label>
+                        <input type="color" value="${p.couleur}" onchange="updatePlat(${idx}, 'couleur', this.value)">
+                    </div>
+                    <div>
+                        <label>Prix Adulte (€)</label>
+                        <input type="number" step="0.5" value="${p.prix_adulte || 0}" onchange="updatePlat(${idx}, 'prix_adulte', parseFloat(this.value))">
+                    </div>
+                    <div>
+                        <label>Prix Enfant (€)</label>
+                        <input type="number" step="0.5" value="${p.prix_enfant || 0}" onchange="updatePlat(${idx}, 'prix_enfant', parseFloat(this.value))">
+                    </div>
+                    <div>
+                        <label>Prix Unique (ex: Frites)</label>
+                        <input type="number" step="0.5" value="${p.prix_unique || 0}" onchange="updatePlat(${idx}, 'prix_unique', parseFloat(this.value))">
+                    </div>
+
+                    <div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 20px; background: #f9f9f9; padding: 10px; border-radius: 10px;">
+                        <div class="checkbox-group">
+                            <input type="checkbox" ${p.hasTaille ? 'checked' : ''} onchange="updatePlat(${idx}, 'hasTaille', this.checked)"> Adulte/Enfant
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" ${p.hasCuisson ? 'checked' : ''} onchange="updatePlat(${idx}, 'hasCuisson', this.checked)"> Cuisson
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" ${p.hasAcc ? 'checked' : ''} onchange="updatePlat(${idx}, 'hasAcc', this.checked)"> Accompagnement
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" ${p.isExpress ? 'checked' : ''} onchange="updatePlat(${idx}, 'isExpress', this.checked)"> ⚡ Express
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePlat(idx, key, val) {
+            config.plats[idx][key] = val;
+        }
+
+        function ajouterNouveauPlat() {
+            config.plats.push({
+                id: "Nouveau" + (config.plats.length + 1),
+                nom: "Nouveau Plat",
+                icon: "🍴",
+                couleur: "#3498db",
+                prix_adulte: 10,
+                prix_enfant: 7,
+                hasTaille: true,
+                hasCuisson: false,
+                hasAcc: true
+            });
+            renderEditor(); // <--- C'est cette ligne qui manquait pour rafraîchir l'écran !
+        }
+
+        function supprimerPlat(idx) {
+            if(confirm("Supprimer ce plat ?")) {
+                config.plats.splice(idx, 1);
+                renderEditor();
+            }
+        }
+
+        function telechargerConfig() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "plats.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

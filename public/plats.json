@@ -1,0 +1,109 @@
+{
+  "plats": [
+    {
+      "id": "Barbecue",
+      "nom": "BARBECUE",
+      "icon": "🍖",
+      "couleur": "#e67e22",
+      "prix_adulte": 12,
+      "prix_enfant": 8,
+      "hasTaille": true,
+      "hasCuisson": false,
+      "hasAcc": true
+    },
+    {
+      "id": "Steak",
+      "nom": "STEAK",
+      "icon": "🥩",
+      "couleur": "#2c3e50",
+      "prix_adulte": 13,
+      "prix_enfant": 9,
+      "hasTaille": true,
+      "hasCuisson": true,
+      "hasAcc": true
+    },
+    {
+      "id": "Fromage",
+      "nom": "FROMAGE",
+      "icon": "🧀",
+      "couleur": "#27ae60",
+      "prix_adulte": 10,
+      "prix_enfant": 7,
+      "hasTaille": true,
+      "hasCuisson": false,
+      "hasAcc": false,
+      "forcedAcc": "Crudités"
+    },
+    {
+      "id": "Frites",
+      "nom": "FRITES",
+      "icon": "🍟",
+      "couleur": "#f1c40f",
+      "prix_unique": 3.5,
+      "hasTaille": false,
+      "hasCuisson": false,
+      "hasAcc": false,
+      "isExpress": true
+    },
+    {
+      "id": "Burger",
+      "nom": "Burger",
+      "icon": "🍔",
+      "couleur": "#3498db",
+      "prix_adulte": 10,
+      "prix_enfant": 7,
+      "hasTaille": true,
+      "hasCuisson": false,
+      "hasAcc": false,
+      "isExpress": true
+    }
+  ],
+  "options": {
+    "tailles": [
+      {
+        "id": "Adulte",
+        "nom": "ADULTE",
+        "icon": "👨"
+      },
+      {
+        "id": "Enfant",
+        "nom": "ENFANT",
+        "icon": "🧸"
+      }
+    ],
+    "cuissons": [
+      {
+        "id": "Bleu",
+        "nom": "Bleu",
+        "icon": "🔵"
+      },
+      {
+        "id": "Saignant",
+        "nom": "Saignant",
+        "icon": "🔴"
+      },
+      {
+        "id": "Apoint",
+        "nom": "À point",
+        "icon": "🟠"
+      },
+      {
+        "id": "Cuit",
+        "nom": "Cuit",
+        "icon": "🟤"
+      }
+    ],
+    "accompagnements": [
+      {
+        "id": "Crudités",
+        "nom": "Crudités",
+        "icon": "🥗"
+      },
+      {
+        "id": "Compote",
+        "nom": "Compote",
+        "icon": "🍎"
+      }
+    ]
+  }
+}

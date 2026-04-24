@@ -1,207 +1,36 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="style.css">
-    <title>Accueil - Fancy Fête</title>
-</head>
-<body>
-    <div id="status">🔴 Déconnecté</div>
-    <div class="nav-links">
-        <a href="accueil.html" class="active">🏠 ACCUEIL</a>
-        <a href="stats.html" id="link-stats">📊 STATS</a>
-        <a href="cuisine.html" id="link-cuisine" class="admin-link" style="display: none;">👨‍🍳 CUISINE</a>
-        <a href="aide.html" target="_blank">❓ AIDE</a>
-    </div>
+let configPlats = [];
 
-    <div style="padding: 10px; display: flex; gap: 5px; background: #eee;">
-        <input type="text" id="msg-cuisine" placeholder="💬 Message à la cuisine..." style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
-        <button onclick="envoyerFlash()" class="btn-valider" style="width: auto; margin: 0; padding: 0 20px; background: var(--dark);">ENVOYER</button>
-    </div>
+async function chargerMenu() {
+    const res = await fetch('plats.json');
+    const data = await res.json();
+    configPlats = data.plats;
 
-    <div id="notifs"></div>
+    // Génère les boutons de la grille principale
+    const grid = document.querySelector('.grid-menus');
+    grid.innerHTML = configPlats.map(p => `
+        <button class="btn-main" onclick="sel('${p.id}')">${p.icon} ${p.nom}</button>
+    `).join('');
+}
 
-    <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
-        <div style="background:white; padding:20px; border-radius:15px; width:85%; max-width:400px; text-align:center;">
-            <h2 id="modal-title"></h2>
-            <div id="modal-body" style="text-align:left; background:#f9f9f9; padding:15px; border-radius:8px; margin:15px 0;"></div>
-            <button class="btn-valider" id="btn-servi">✅ VÉRIFIÉ / SERVI</button>
-        </div>
-    </div>
-    
-    <div class="grid-menus">
-        <button class="btn-main" onclick="sel('Barbecue')">🍖 BARBECUE</button>
-        <button class="btn-main" onclick="sel('Steak')">🥩 STEAK</button>
-        <button class="btn-main" onclick="sel('Fromage')">🧀 FROMAGE</button>
-        <button class="btn-main" onclick="sel('Frites')">🍟 FRITES</button>
-    </div>
+function sel(id) {
+    const plat = configPlats.find(p => p.id === id);
+    // Initialise les options selon la config du plat
+    opt = {
+        p: plat.id,
+        c: (plat.hasCuisson ? 'Apoint' : 'N/A'),
+        a: (plat.hasAcc ? 'Crudités' : 'N/A'),
+        t: (plat.hasTaille ? 'Adulte' : 'N/A')
+    };
 
-    <div id="options" style="display:none;" class="section-options">
-        <h2 id="titre-sel" style="text-align:center; color:var(--primary);"></h2>
-        <div id="bloc-taille" style="text-align:center">
-            <button id="b-Adulte" class="btn-opt" onclick="setT('Adulte')">👨 ADULTE</button>
-            <button id="b-Enfant" class="btn-opt" onclick="setT('Enfant')">🧸 ENFANT</button>
-        </div>
-        <div id="bloc-cuisson" style="display:none; text-align:center">
-            <button id="b-Bleu" class="btn-opt" onclick="setO('c','Bleu')">🔵 Bleu</button>
-            <button id="b-Saignant" class="btn-opt" onclick="setO('c','Saignant')">🔴 Saignant</button>
-            <button id="b-Apoint" class="btn-opt" onclick="setO('c','Apoint')">🟠 À point</button>
-            <button id="b-Cuit" class="btn-opt" onclick="setO('c','Cuit')">🟤 Cuit</button>
-        </div>
-        <div id="bloc-acc" style="text-align:center">
-            <button id="b-Crudités" class="btn-opt" onclick="setO('a','Crudités')">🥗 Crudités</button>
-            <button id="b-Compote" class="btn-opt" onclick="setO('a','Compote')">🍎 Compote</button>
-        </div>
-        <div style="text-align:center; margin:15px 0;">
-            <button class="btn-opt" onclick="changeQty(-1)">-</button>
-            <b id="qty-val" style="font-size:1.5rem; margin:0 15px;">1</b>
-            <button class="btn-opt" onclick="changeQty(1)">+</button>
-        </div>
-        <input type="text" id="rem" placeholder="⚠️ Remarque / Allergie" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ccc; box-sizing: border-box;">
-        <button class="btn-valider" onclick="ajouter()">+ AJOUTER AU PLATEAU</button>
-    </div>
+    document.getElementById('titre-sel').innerText = plat.nom;
+    document.getElementById('options').style.display = 'block';
 
-    <div class="panier-container">
-        <h3>Plateau en cours</h3>
-        <div id="liste-panier"></div>
-        <div class="grid-16" id="grid-16"></div>
-        <button id="btn-final" class="btn-valider" onclick="valider()">ENVOYER EN CUISINE 🚀</button>
-    </div>
+    // Affiche/Masque les blocs selon le JSON
+    document.getElementById('bloc-cuisson').style.display = plat.hasCuisson ? 'block' : 'none';
+    document.getElementById('bloc-acc').style.display = plat.hasAcc ? 'block' : 'none';
+    document.getElementById('bloc-taille').style.display = plat.hasTaille ? 'block' : 'none';
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let panier = [], currentQty = 1, numPlateau = null, opt = {};
-        const iconDict = { 
-            'Barbecue':'🍖', 'Steak':'🥩', 'Fromage':'🧀', 'Frites':'🍟', 
-            'Adulte':'👨', 'Enfant':'🧸', 'Bleu':'🔵', 'Saignant':'🔴', 
-            'Apoint':'🟠', 'Cuit':'🟤', 'Crudités':'🥗', 'Compote':'🍎' 
-        };
+    updateUI();
+}
 
-        fetch('/whoami').then(res => res.json()).then(data => {
-            if (data.user === 'admin') document.getElementById('link-cuisine').style.display = 'inline-block';
-        });
-
-        function envoyerFlash() {
-            const input = document.getElementById('msg-cuisine');
-            if(input.value.trim()) { socket.emit('envoyer_flash_cuisine', input.value); input.value = ""; }
-        }
-
-        socket.on('connect', () => { document.getElementById('status').innerText = "🟢 Connecté"; });
-        socket.on('erreur_table_prise', (msg) => { alert(msg); numPlateau = null; majGrille(); });
-        
-        socket.on('affichage_cuisine', (data) => {
-            if (data.num === "⚡ EXPRESS" || data.num == numPlateau) {
-                panier = []; numPlateau = null; renderPanier(); majGrille();
-            }
-        });
-
-        function sel(p) { 
-            opt = { p: p, c: (p==='Steak'?'Apoint':'N/A'), a: (p==='Barbecue'||p==='Steak'?'Crudités':'N/A'), t: (p==='Frites'?'N/A':'Adulte') };
-            document.getElementById('titre-sel').innerText = p;
-            document.getElementById('options').style.display = 'block';
-            document.getElementById('bloc-cuisson').style.display = (p==='Steak'?'block':'none');
-            document.getElementById('bloc-acc').style.display = (p==='Barbecue'||p==='Steak'?'block':'none');
-            document.getElementById('bloc-taille').style.display = (p==='Frites'?'none':'block');
-            updateUI();
-        }
-        function setT(t) { opt.t = t; updateUI(); }
-        function setO(k, v) { opt[k] = v; updateUI(); }
-        function changeQty(v) { currentQty = Math.max(1, currentQty + v); document.getElementById('qty-val').innerText = currentQty; }
-        function modifQtyPanier(idx, delta) { panier[idx].qty = Math.max(1, panier[idx].qty + delta); renderPanier(); }
-
-        function updateUI() { 
-            document.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active')); 
-            ['Adulte', 'Enfant', 'Bleu', 'Saignant', 'Apoint', 'Cuit', 'Crudités', 'Compote'].forEach(v => {
-                const btn = document.getElementById('b-'+v);
-                if(btn && (opt.t === v || opt.c === v || opt.a === v)) btn.classList.add('active');
-            }); 
-        }
-
-        function ajouter() {
-            panier.push({ ...opt, qty: currentQty, rem: document.getElementById('rem').value });
-            document.getElementById('options').style.display = 'none';
-            document.getElementById('rem').value = ''; currentQty = 1; document.getElementById('qty-val').innerText = "1";
-            renderPanier();
-        }
-
-        function renderPanier() {
-            const container = document.getElementById('liste-panier');
-            if(!panier.length) { container.innerHTML = "<small style='color:gray'>Aucun article...</small>"; return; }
-            container.innerHTML = panier.map((i, idx) => `
-                <div style="background:#eee; padding:10px; margin-bottom:5px; border-radius:8px; display:flex; align-items:center; flex-wrap: wrap;">
-                    <div style="display:flex; align-items:center; flex-grow:1;">
-                        <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},-1)">-</button>
-                        <b style="width:30px; text-align:center;">${i.qty}x</b>
-                        <button class="qty-btn-panier" onclick="modifQtyPanier(${idx},1)">+</button>
-                        <div style="margin-left:10px;">
-                            <b>${iconDict[i.p] || ''} ${i.p}</b><br>
-                            <small style="color:#555;">
-                                ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
-                                ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
-                                ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
-                            </small>
-                            ${i.rem ? `<br><b style="color:var(--danger); font-size:0.8rem;">⚠️ ${i.rem.toUpperCase()}</b>` : ''}
-                        </div>
-                    </div>
-                    <button onclick="panier.splice(${idx},1);renderPanier()" style="border:none; background:none; font-weight:bold; color:red; margin-left: auto;">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function valider() {
-            if (!panier.length) return alert("Le plateau est vide !");
-            const exp = panier.every(i => i.p === 'Frites');
-            if(!exp && !numPlateau) return alert("Sélectionnez une table !");
-            socket.emit('nouvelle_commande', { num: exp ? "⚡ EXPRESS" : numPlateau, items: panier });
-        }
-
-        socket.on('notification_accueil', (cmd) => {
-            new Audio('alerte.mp3').play();
-            if (cmd.num.toString().includes('EXPRESS')) { socket.emit('confirmation_servi', cmd.num); return; }
-            const div = document.createElement('div'); div.className = 'notif-bubble';
-            div.innerHTML = "🔔 PRÊT : " + cmd.num;
-            div.onclick = () => {
-                const itemsTries = [...cmd.items].sort((a, b) => (a.t === 'Enfant' ? -1 : 1));
-                const min = Math.floor(cmd.duree / 60);
-                const sec = cmd.duree % 60;
-                const txtTemps = min > 0 ? `${min}m ${sec}s` : `${sec}s`;
-
-                document.getElementById('modal-title').innerText = `Vérif Table ${cmd.num} (⏱️ ${txtTemps})`;
-                document.getElementById('modal-body').innerHTML = itemsTries.map(i => `
-                    <div style="border-bottom:1px solid #ddd; padding:8px 0; ${i.t === 'Enfant' ? 'background:rgba(241, 196, 15, 0.05);' : ''}">
-                        <b>${i.qty}x ${iconDict[i.p] || ''} ${i.p}</b><br>
-                        <small>
-                            ${i.t!=='N/A' ? (iconDict[i.t]||'')+' '+i.t : ''} 
-                            ${i.c!=='N/A' ? ' • '+(iconDict[i.c]||'')+' '+i.c : ''} 
-                            ${i.a!=='N/A' ? ' • '+(iconDict[i.a]||'')+' '+i.a : ''}
-                        </small>
-                        ${i.rem ? `<br><b style="color:red">⚠️ ${i.rem.toUpperCase()}</b>` : ''}
-                    </div>
-                `).join('');
-                document.getElementById('btn-servi').onclick = () => { socket.emit('confirmation_servi', cmd.num); div.remove(); document.getElementById('modal-overlay').style.display='none'; };
-                document.getElementById('modal-overlay').style.display = 'flex';
-            };
-            document.getElementById('notifs').appendChild(div);
-        });
-
-        socket.on('maj_plateaux', (liste) => { window.lastListe = liste; majGrille(); });
-        function majGrille() {
-            const grid = document.getElementById('grid-16'); grid.innerHTML = "";
-            for(let i=1; i<=16; i++) {
-                const b = document.createElement('button'); const occ = (window.lastListe||[]).includes(i);
-                b.className = 'btn-num' + (numPlateau === i ? ' selected' : '');
-                b.innerText = occ ? 'X' : i;
-                if(!occ) b.onclick = () => { numPlateau = i; majGrille(); };
-                else {
-                    let pressTimer;
-                    b.onmousedown = b.ontouchstart = () => { pressTimer = window.setTimeout(() => { if(confirm(`Libérer table #${i} ?`)) socket.emit('forcer_liberation', i); }, 2000); };
-                    b.onmouseup = b.onmouseleave = b.ontouchend = () => clearTimeout(pressTimer);
-                }
-                grid.appendChild(b);
-            }
-        }
-    </script>
-</body>
-</html>
+window.addEventListener('DOMContentLoaded', chargerMenu);
